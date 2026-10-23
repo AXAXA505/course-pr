@@ -2,6 +2,7 @@
 
 #include "recipe.hpp"
 
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -25,7 +26,7 @@ public:
     [[nodiscard]] std::string_view GetName()   const { return m_name; }
     [[nodiscard]] const Recipe&    GetRecipe() const { return m_recipe; }
 
-    bool AddIngredient(Ingredient* ingredient, int amount);
+    bool AddIngredient(const std::shared_ptr<Ingredient>& ingredient, int amount);
 
     [[nodiscard]] bool IsValid() const;
 

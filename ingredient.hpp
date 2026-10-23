@@ -19,7 +19,6 @@ public:
 private:
     std::string m_name;
     Type m_type{ Type::eBase }; 
-    Ingredient() : Ingredient("unknown", Type::eBase) {};
 
 public:
     Ingredient(std::string_view name, Type type);
