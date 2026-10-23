@@ -19,8 +19,7 @@ Ingredient::Ingredient(std::string_view name, Type type)
 
 Ingredient::~Ingredient()
 {
-    std::cout << "[Ingredient] Деструктор: ингредиент \"" << m_name
-              << "\" уничтожен.\n";
+    std::cout << "[Ingredient] Деструктор: ингредиент \"" << m_name << "\" уничтожен.\n";
 }
 
 void Ingredient::Print() const

@@ -19,18 +19,17 @@ Drink::Drink(std::string_view name, std::string_view recipeName)
 
 Drink::~Drink()
 {
-    std::cout << "[Drink] Деструктор: напиток \"" << m_name
-              << "\" уничтожен.\n";
+    std::cout << "[Drink] Деструктор: напиток \"" << m_name << "\" уничтожен.\n";
 }
 
-bool Drink::AddIngredient(Ingredient* ingredient, int amount)
+bool Drink::AddIngredient(const std::shared_ptr<Ingredient>& ingredient, int amount)
 {
     return m_recipe.AddIngredient(ingredient, amount);
 }
 
 bool Drink::IsValid() const
 {
-    return m_recipe.GetCount() > 0;
+    return m_recipe.GetLiveCount() > 0;
 }
 
 void Drink::Print() const
