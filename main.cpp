@@ -1,97 +1,113 @@
-#include "drink.hpp"
-#include "ingredient.hpp"
-#include "recipe.hpp"
+#include "coffee.hpp"
+#include "tea.hpp"
 
-#include <windows.h>
 #include <iostream>
 #include <memory>
-#include <utility>
+#include <windows.h>
+#include <vector>
 
 int main()
 {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
-    std::cout << "=== Старт программы. Создаем ингредиенты через make_shared ===\n";
     auto coffee  = std::make_shared<vending::Ingredient>("Кофе",     vending::Ingredient::Type::eBase);
     auto milk    = std::make_shared<vending::Ingredient>("Молоко",   vending::Ingredient::Type::eBase);
     auto caramel = std::make_shared<vending::Ingredient>("Карамель", vending::Ingredient::Type::eTopping);
-    auto ice     = std::make_shared<vending::Ingredient>("Лёд",      vending::Ingredient::Type::eIce);
 
-    // демонстрация времени жизни shared_ptr
-    std::cout << "\n--- shared_ptr: уничтожение с последним владельцем ---\n";
+    // === Четыре вида конструкторов ===
+    std::cout << "\n=== Конструкторы ===\n";
     {
-        auto demo = std::make_shared<vending::Ingredient>("Демо", vending::Ingredient::Type::eIce);
-        std::cout << "demo.use_count() = " << demo.use_count() << "\n";          // 1
+        vending::Coffee latte("Латте", "Рецепт Латте");      // параметризованный
+        vending::Coffee defaultCoffee;                       // по умолчанию
+        vending::Coffee latteCopy = latte;                   // копирования
+        vending::Coffee latteMoved = std::move(latteCopy);   // перемещения
+    }
+
+    // === Поверхностная копия ===
+    std::cout << "\n=== Поверхностная копия ===\n";
+    {
+        auto sharedRecipe = std::make_shared<vending::Recipe>("Общий рецепт");
+        vending::Coffee a("Кофе A", sharedRecipe);
+        vending::Coffee b("Кофе B", sharedRecipe);
+
+        a.AddIngredient(coffee, 10);
+        std::cout << "Ингредиентов у B после изменения A: "
+                  << b.GetRecipe().GetLiveCount() << " (B видит изменения A)\n";
+    }
+
+    // === Глубокая копия ===
+    std::cout << "\n=== Глубокая копия ===\n";
+    {
+        vending::Coffee original("Американо", "Рецепт Американо");
+        original.AddIngredient(coffee, 15);
+
+        vending::Coffee copy = original; // copy ctor глубокая копия
+        copy.AddIngredient(milk, 50);  
+
+        vending::BaseDrink& asBase = original;
+        auto clone = asBase.Clone();
+        clone->AddIngredient(milk, 50);
+        clone->AddIngredient(caramel, 5);
+
+        std::cout << "Ингредиентов — оригинал: " << original.GetRecipe().GetLiveCount()
+                << ", копия: " << copy.GetRecipe().GetLiveCount()
+                << ", клон:  " << clone->GetRecipe().GetLiveCount() << "\n";
+    }
+
+    // === this ===
+    std::cout << "\n=== This ===\n";
+    {
+        vending::Coffee x("X", "Рецепт X");
+        vending::Coffee y("Y", "Рецепт Y");
+        x.AddIngredient(coffee, 5);
+        x = y;   // глубокое присваивание
+        x = x;   // сработает `if (this == &other) return *this;`
+    }
+
+    // === Виртуальный деструктор через указатель на базу ===
+    std::cout << "\n=== Виртуальный деструктор ===\n";
+    {
+        std::unique_ptr<vending::BaseDrink> ptr = std::make_unique<vending::Coffee>("Удаляемый", "Рецепт");
+        std::cout << "reset() -> сначала ~Coffee, затем ~BaseDrink:\n";
+        ptr.reset();
+    }
+
+    // === Строки concat / find / substr  ===
+    std::cout << "\n=== Строки ===\n";
+    {
+        vending::Coffee searchable("Латте", "Рецепт Латте");
+
+        const std::string full = std::string(searchable.GetCategory()) + " " + std::string(searchable.GetName());
+        std::cout << "Конкатенация: \"" << full << "\"\n";
+
+        const std::size_t pos = full.find("Лат");
+        std::cout << "find(\"Лат\") = " << pos << "\n";
+
+        const std::string part = full.substr(pos, 6); // в ру языке один символ = 2 байт
+        std::cout << "substr = \"" << part << "\", == \"Лат\": " << (part == "Лат") << "\n";
+    }
+
+    std::cout << "\n=== Массив unique_ptr<BaseDrink> ===\n";
+    {
+        std::vector<std::unique_ptr<vending::BaseDrink>> drinks;
+        drinks.push_back(std::make_unique<vending::Coffee>("Американо",    "Р A"));
+        drinks.push_back(std::make_unique<vending::Tea>   ("Зелёный чай", "Р Ч"));
+        drinks.push_back(std::make_unique<vending::Coffee>("Латте",       "Р Л"));
+        drinks.push_back(std::make_unique<vending::Tea>   ("Чёрный чай",  "Р ЧЧ"));
+
+        // Coffee::Print зовёт базу, Tea::Print - нет
+        for (const std::unique_ptr<vending::BaseDrink>& d : drinks)
         {
-            auto demoCopy = demo;
-            std::cout << "после копии: use_count = " << demo.use_count() << "\n"; // 2
+            std::cout << "--- id = " << d->GetId()
+                    << ", категория = " << d->GetCategory() << " ---\n";
+            d->Print();
         }
-        std::cout << "после выхода из блока: use_count = " << demo.use_count() << "\n";   // 1
+        std::cout << "\nДеструкторы:\n";
+        drinks.clear();
     }
+    std::cout << "Всего создано напитков: " << vending::BaseDrink::GetDrinkCount() << "\n";
 
-    // время жизни напитка через unique_ptr
-    {
-        std::cout << "\n--- Вход в локальный блок (unique_ptr) ---\n";
-        auto latte = std::make_unique<vending::Drink>("Латте", "Рецепт Латте");
-
-        latte->AddIngredient(coffee, 20);
-        latte->AddIngredient(milk, 150);
-        latte->AddIngredient(caramel, 22);
-
-        std::cout << "\ncoffee.use_count() после добавления в рецепт: " << coffee.use_count() << "\n";
-
-        // Проверки
-        latte->AddIngredient(ice, 0);        // Некорректное количество
-        latte->AddIngredient(coffee, 5);     // Дубликат
-        latte->AddIngredient(nullptr, 10);   // Пустой указатель
-
-        std::cout << "\nТекущее состояние напитка:\n";
-        latte->Print();
-
-        std::cout << "\n--- Выход из локального блока (уничтожение latte) ---\n";
-    }
-
-    std::cout << "\nПроверка сохранности ингредиентов после уничтожения напитка:\n";
-    coffee->Print();
-
-
-    std::cout << "\n=== unique_ptr: передача владения ===\n";
-    auto americano = std::make_unique<vending::Drink>("Американо", "Рецепт Американо");
-    americano->AddIngredient(coffee, 15);
-    americano->Print();
-
-    std::unique_ptr<vending::Drink> owner = std::move(americano);   // владение перешло
-    std::cout << "americano пуст после std::move: " << (americano == nullptr ? "да" : "нет") << "\n";
-    std::cout << "у owner лежит: " << owner->GetName() << "\n";
-
-
-    std::cout << "\n=== Массив умных указателей ===\n";
-    std::unique_ptr<vending::Drink> many[2];
-    many[0] = std::make_unique<vending::Drink>("Эспрессо", "Рецепт Эспрессо");
-    many[1] = std::make_unique<vending::Drink>("Капучино", "Рецепт Капучино");
-
-    many[0]->AddIngredient(coffee, 7);
-    many[1]->AddIngredient(milk, 100);
-
-    for (const auto& drink : many)
-    {
-        drink->Print();
-    }
-
-    // 5. weak_ptr
-    std::cout << "\n=== weak_ptr ===\n";
-    vending::Drink raf("Раф", "Рецепт Раф кофе");
-    raf.AddIngredient(coffee, 7);
-
-    {
-        auto syrup = std::make_shared<vending::Ingredient>("Сироп", vending::Ingredient::Type::eTopping);
-        raf.AddIngredient(syrup, 10);
-        raf.Print();
-    } 
-
-    raf.Print();
-
-    std::cout << "\n=== Завершение main ===\n";
+    std::cout << "\n=== Конец main ===\n";
     return 0;
 }
