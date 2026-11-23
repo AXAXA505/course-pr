@@ -5,6 +5,8 @@
 namespace vending
 {
 
+// === ctors and dtors ===
+
 Ingredient::Ingredient(std::string_view name, Type type)
     : m_name{ name }
     , m_type{ type }
@@ -19,18 +21,23 @@ Ingredient::Ingredient(std::string_view name, Type type)
 
 Ingredient::~Ingredient()
 {
-    std::cout << "[Ingredient] Деструктор: ингредиент \"" << m_name << "\" уничтожен.\n";
+    std::cout << "[Ingredient] Деструктор: ингредиент \"" << m_name
+              << "\" уничтожен.\n";
 }
+
+// === вывод ===
 
 void Ingredient::Print() const
 {
     std::cout << "Ингредиент: " << m_name << " (";
+
     switch (m_type)
     {
     case Type::eBase:    std::cout << "основа";  break;
     case Type::eTopping: std::cout << "топпинг"; break;
     case Type::eIce:     std::cout << "лёд";     break;
     }
+
     std::cout << ")\n";
 }
 

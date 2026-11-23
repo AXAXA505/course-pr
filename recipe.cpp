@@ -5,6 +5,13 @@
 namespace vending
 {
 
+// === ctors and dtors ===
+
+Recipe::Recipe()
+    : Recipe("unknown")
+{
+}
+
 Recipe::Recipe(std::string_view name)
     : m_name{ name }
 {
@@ -22,6 +29,8 @@ Recipe::~Recipe()
               << "\" уничтожен.\n";
 }
 
+// === операции с рецептом ===
+
 bool Recipe::AddIngredient(const std::shared_ptr<Ingredient>& ingredient, int amount)
 {
     if (!ingredient)
@@ -32,7 +41,7 @@ bool Recipe::AddIngredient(const std::shared_ptr<Ingredient>& ingredient, int am
     if (amount <= 0)
     {
         std::cout << "[Recipe] Отказ: количество ингредиента \"" << ingredient->GetName()
-                  << "\" должно быть больше нуля (получено "<< amount << ").\n";
+                  << "\" должно быть больше нуля (получено " << amount << ").\n";
         return false;
     }
     if (HasIngredient(ingredient.get()))
@@ -44,6 +53,8 @@ bool Recipe::AddIngredient(const std::shared_ptr<Ingredient>& ingredient, int am
     m_requirements.push_back({ ingredient, amount });
     return true;
 }
+
+// === геттеры ===
 
 bool Recipe::HasIngredient(const Ingredient* ingredient) const
 {
@@ -61,23 +72,6 @@ bool Recipe::HasIngredient(const Ingredient* ingredient) const
     return false;
 }
 
-void Recipe::Print() const
-{
-    std::cout << "Рецепт \"" << m_name << "\": "<< GetLiveCount() << " ингредиент(ов)\n";
-    for (const auto& req : m_requirements)
-    {
-        if (auto ing = req.ingredient.lock())
-        {
-            std::cout << "  - " << ing->GetName() << " x " << req.amount << "\n";
-        }
-        else
-        {
-            std::cout << "  - [ингредиент уничтожен] x " << req.amount << "\n";
-        }
-    }
-}
-
-
 std::size_t Recipe::GetLiveCount() const
 {
     std::size_t count = 0;
@@ -89,6 +83,26 @@ std::size_t Recipe::GetLiveCount() const
         }
     }
     return count;
+}
+
+// === вывод ===
+
+void Recipe::Print() const
+{
+    std::cout << "Рецепт \"" << m_name << "\": "
+              << GetLiveCount() << " ингредиент(ов)\n";
+
+    for (const auto& req : m_requirements)
+    {
+        if (auto ing = req.ingredient.lock())
+        {
+            std::cout << "  - " << ing->GetName() << " x " << req.amount << "\n";
+        }
+        else
+        {
+            std::cout << "  - [ингредиент уничтожен] x " << req.amount << "\n";
+        }
+    }
 }
 
 } // namespace vending
